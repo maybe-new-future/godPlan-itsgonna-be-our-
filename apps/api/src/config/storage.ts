@@ -1,10 +1,11 @@
 import fs from "fs";
 import path from "path";
 
-const configuredUploadDir = process.env.UPLOAD_DIR?.trim();
-const fallbackUploadDir = process.env.RENDER ? "/opt/render/project/src/uploads" : "./uploads";
+export const BASE_UPLOAD_DIR =
+  process.env.UPLOAD_DIR ||
+  path.join(process.cwd(), "uploads");
 
-export const uploadsRoot = path.resolve(configuredUploadDir || fallbackUploadDir);
+export const uploadsRoot = path.resolve(BASE_UPLOAD_DIR);
 
 export function ensureDir(dir: string) {
   if (!fs.existsSync(dir)) {
