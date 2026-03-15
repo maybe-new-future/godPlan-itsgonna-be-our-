@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: tifawin_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tifawin
+      POSTGRES_PASSWORD: tifawin_password
+      POSTGRES_DB: tifawin_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - tifawin_pgdata:/var/lib/postgresql/data
+
+volumes:
+  tifawin_pgdata:

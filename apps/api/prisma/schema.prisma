@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  passwordHash     String
+  refreshTokenHash String?
+  role             Role
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  applications     Application[]
+  savedJobs        SavedJob[]
+  candidateProfile CandidateProfile?
+  companyProfile   CompanyProfile?
+  jobs             Job[]
+  notifications    Notification[]
+  candidateConversations Conversation[] @relation("CandidateConversations")
+  companyConversations   Conversation[] @relation("CompanyConversations")
+  messagesSent           Message[]
+  adminAuditLogs         AdminAuditLog[]
+}
+
+model CandidateProfile {
+  userId          String   @id
+  avatarUrl       String?
+  fullName        String
+  city            String
+  headline        String?
+  bio             String?
+  skills          String?
+  experienceLevel String?
+  cvUrl           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model CompanyProfile {
+  userId      String    @id
+  companyName String
+  sector      String?
+  city        String
+  description String?
+  website     String?
+  logoUrl     String?
+  isVerified  Boolean   @default(false)
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Job {
+  id            String        @id @default(uuid())
+  companyUserId String
+  title         String
+  description   String
+  city          String
+  contractType  String?
+  salaryMin     Int?
+  salaryMax     Int?
+  status        JobStatus     @default(OPEN)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  applications  Application[]
+  savedBy       SavedJob[]
+  company       User          @relation(fields: [companyUserId], references: [id])
+}
+
+model Application {
+  id              String            @id @default(uuid())
+  jobId           String
+  candidateUserId String
+  status          ApplicationStatus @default(SUBMITTED)
+  createdAt       DateTime          @default(now())
+  candidate       User              @relation(fields: [candidateUserId], references: [id])
+  job             Job               @relation(fields: [jobId], references: [id])
+
+  @@unique([jobId, candidateUserId])
+}
+
+model SavedJob {
+  id              String   @id @default(uuid())
+  jobId           String
+  candidateUserId String
+  createdAt       DateTime @default(now())
+  candidate       User     @relation(fields: [candidateUserId], references: [id])
+  job             Job      @relation(fields: [jobId], references: [id])
+
+  @@unique([jobId, candidateUserId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model Conversation {
+  id              String    @id @default(uuid())
+  candidateUserId String
+  companyUserId   String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  candidate       User      @relation("CandidateConversations", fields: [candidateUserId], references: [id], onDelete: Cascade)
+  company         User      @relation("CompanyConversations", fields: [companyUserId], references: [id], onDelete: Cascade)
+  messages        Message[]
+
+  @@unique([candidateUserId, companyUserId])
+  @@index([candidateUserId])
+  @@index([companyUserId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderUserId   String
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderUserId])
+}
+
+model AdminAuditLog {
+  id          String           @id @default(uuid())
+  adminUserId String
+  action      AdminAuditAction
+  targetType  String
+  targetId    String
+  details     String?
+  createdAt   DateTime         @default(now())
+
+  adminUser   User             @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, createdAt])
+  @@index([targetType, targetId])
+}
+
+enum Role {
+  CANDIDATE
+  COMPANY
+  ADMIN
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SEEN
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum NotificationType {
+  NEW_APPLICATION
+  APPLICATION_SEEN
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  MESSAGE_RECEIVED
+}
+
+enum AdminAuditAction {
+  USER_STATUS_UPDATED
+  USER_DELETED
+  JOB_STATUS_UPDATED
+  JOB_DELETED
+  COMPANY_VERIFIED
+}
