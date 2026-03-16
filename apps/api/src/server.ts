@@ -17,6 +17,14 @@ import notificationRoutes from "./routes/notification.routes";
 import profileStrengthRoutes from "./routes/profileStrength.routes";
 
 const app = express();
+const allowedOrigins = new Set(
+  [
+    "http://localhost:5173",
+    "https://bright-gumdrop-4fe1c0.netlify.app",
+    env.CLIENT_URL,
+    env.FRONTEND_URL,
+  ].filter((value): value is string => Boolean(value))
+);
 
 app.use(helmet());
 app.use(
@@ -26,7 +34,7 @@ app.use(
         return callback(null, true);
       }
 
-      const isConfiguredClient = origin === env.CLIENT_URL;
+      const isConfiguredClient = allowedOrigins.has(origin);
       const isVercelPreview = /^https:\/\/.+\.vercel\.app$/i.test(origin);
 
       if (isConfiguredClient || isVercelPreview) {
